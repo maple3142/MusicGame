@@ -1,11 +1,15 @@
 package sample;
 
 public class Note {
-    public long startTime;
+    public int startTime;
+    public int endTime;
+    public int laneNum;
     public NoteState state;
 
-    public Note(long startTime) {
+    public Note(int startTime, int endTime,int laneNum) {
         this.startTime = startTime;
+        this.endTime = endTime;
+        this.laneNum = laneNum;
         this.state = NoteState.NORMAL;
     }
 }

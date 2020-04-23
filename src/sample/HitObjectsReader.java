@@ -2,26 +2,24 @@ package sample;
 
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.ArrayDeque;
-import java.util.Deque;
+import java.util.ArrayList;
+import java.util.List;
 
 public class HitObjectsReader {
-    public Deque<Note>[] read() throws Exception {
-        var lanes = new Deque[4];
-        for (int i = 0; i < 4; i++) {
-            lanes[i] = new ArrayDeque<>();
-        }
-        var p = getClass().getResource("hitobjects.txt").toURI();
+    public List<Note> read() throws Exception {
+        var notes = new ArrayList<Note>();
+        var p = getClass().getResource("pupa.txt").toURI();
         var lines = Files.readAllLines(Paths.get(p));
         for (var line : lines) {
             var toks = line.split(",");
-            if (toks.length < 3) continue;
+            if (toks.length < 4) continue;
             var x = Integer.parseInt(toks[0]);
             int lane = (x - 64) / 128;
-            long time = Long.parseLong(toks[2]) * 1000 * 1000;
-            var note = new Note(time);
-            lanes[lane].add(note);
+            int start = Integer.parseInt(toks[2]);
+            int duration = Integer.parseInt(toks[3]);
+            var note = new Note(start, start + duration, lane);
+            notes.add(note);
         }
-        return lanes;
+        return notes;
     }
 }

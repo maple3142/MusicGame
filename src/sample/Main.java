@@ -14,7 +14,7 @@ public class Main extends Application {
     @Override
     public void start(Stage stage) throws Exception {
         int w = 400;
-        int h = 400;
+        int h = 800;
         var root = new Pane();
         var canvas = new Canvas(w, h);
         var ctx = canvas.getGraphicsContext2D();
@@ -26,8 +26,12 @@ public class Main extends Application {
         stage.show();
 
         var game = new Game(w, h);
-        game.setLanes(new HitObjectsReader().read());
-        var player = new MediaPlayer(new Media(getClass().getResource("sweet witch girl.mp3").toString()));
+        var bm = new Beatmap();
+        bm.notes = new HitObjectsReader().read();
+        bm.numLanes = 4;
+        game.setBeatmap(bm);
+        System.out.println(getClass().getResource("pupa.mp3"));
+        var player = new MediaPlayer(new Media(getClass().getResource("pupa.mp3").toString()));
         game.setPlayer(player);
         var timer = new AnimationTimer() {
             @Override
@@ -36,8 +40,9 @@ public class Main extends Application {
             }
         };
         root.setOnKeyPressed(game::onKeyPressed);
+        root.setOnKeyReleased(game::onKeyReleased);
         root.requestFocus();
-        player.setOnReady(() -> timer.start());
+        player.setOnReady(timer::start);
 
     }
 
