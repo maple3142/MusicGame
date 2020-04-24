@@ -30,8 +30,7 @@ public class Main extends Application {
         bm.notes = new HitObjectsReader().read();
         bm.numLanes = 4;
         game.setBeatmap(bm);
-        System.out.println(getClass().getResource("pupa.mp3"));
-        var player = new MediaPlayer(new Media(getClass().getResource("pupa.mp3").toString()));
+        var player = new MediaPlayer(new Media(getClass().getResource("yasashisani.mp3").toString()));
         game.setPlayer(player);
         var timer = new AnimationTimer() {
             @Override

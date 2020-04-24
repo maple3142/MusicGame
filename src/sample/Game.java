@@ -19,9 +19,10 @@ public class Game {
     private int laneWidth;
     private int numLanes;
     private int combo;
-    final private int accuracyRange = 50; // 50 ms
+    private LaneToKeyConverter keyConverter;
+    final private int accuracyRange = 100; // 50 ms
     final private int speed = 80; // how much pixels should note move per 1/10 second
-    final private int bottomPadding = 40;
+    final private int bottomPadding = 200;
     final private int hitBarHeight = 10;
     final private Color laneColor = Color.MEDIUMPURPLE;
     final private Color lanePressedColor = Color.PURPLE;
@@ -34,16 +35,14 @@ public class Game {
 
     public void setBeatmap(Beatmap bm) {
         this.numLanes = bm.numLanes;
+        keyConverter = new LaneToKeyConverter(bm.numLanes);
         for (int i = 0; i < numLanes; i++) {
             int finalI = i;
             var notes = bm.notes.stream().filter(n -> finalI == n.laneNum).collect(Collectors.toList());
             var lane = new Lane();
             lane.insertNotes(notes);
             this.lanes.add(lane);
-            if (i == 0) lane.keyCode = 'D';
-            if (i == 1) lane.keyCode = 'F';
-            if (i == 2) lane.keyCode = 'J';
-            if (i == 3) lane.keyCode = 'K';
+            lane.keyCode = keyConverter.laneNumToKey(i);
         }
         laneWidth = totalLaneWidth / numLanes;
     }
@@ -75,6 +74,7 @@ public class Game {
     }
 
     private long firstLoopTime = 0;
+    private int currentTime;
 
     public void loop(long now, GraphicsContext ctx) {
         // now is nanoseconds
@@ -89,7 +89,7 @@ public class Game {
             }
             return;
         }
-        int currentTime = (int) ((now - firstLoopTime) / (1000 * 1000));
+        currentTime = (int) ((now - firstLoopTime) / (1000 * 1000));
         int heightToTop = height - bottomPadding - hitBarHeight / 2;
         int topTime = currentTime + heightToTop * 100 / speed;
         int bottomTime = currentTime - (bottomPadding + hitBarHeight / 2) * 100 / speed;
@@ -98,36 +98,23 @@ public class Game {
             while (!lane.starting.isEmpty() && lane.starting.peek().time <= currentTime + accuracyRange) {
                 lane.currentNotes.add(lane.starting.poll().note);
             }
-            if (pressedKeys.contains(lane.keyCode)) {
-                boolean hasNoteCleared = false;
-                for (var note : lane.currentNotes) {
-                    if (note.state == NoteState.NORMAL) {
-                        note.state = NoteState.CLEARED;
-                        combo++;
-                        hasNoteCleared = true;
-                    }
-                }
-                ctx.setFill(lanePressedColor);
-                int x = padding + i * laneWidth;
-                ctx.fillRect(x + 1, height - bottomPadding, laneWidth - 2, height);
-                if (hasNoteCleared) {
-                    ctx.setFill(hitBarEffectColor);
-                    ctx.fillRect(x + 1, height - bottomPadding - hitBarHeight, laneWidth - 2, hitBarHeight);
-                }
-            }
             while (!lane.ending.isEmpty() && lane.ending.peek().time <= currentTime - accuracyRange) {
                 var note = lane.ending.poll().note;
                 lane.currentNotes.remove(note);
-                if (note.state != NoteState.CLEARED) {
-                    note.state = NoteState.MISSED;
-                    combo = 0;
+                if (note.state == NoteState.NORMAL || note.state == NoteState.PRESSED) {
+                    updateNoteState(note, NoteState.MISSED);
                 }
+            }
+            if (pressedKeys.contains(lane.keyCode)) {
+                ctx.setFill(lanePressedColor);
+                int x = padding + i * laneWidth;
+                ctx.fillRect(x + 1, height - bottomPadding, laneWidth - 2, height);
             }
             for (var note : lane.notes) {
                 if (note.state == NoteState.CLEARED) {
                     continue;
                 }
-                if (note.startTime > topTime || note.endTime < bottomTime) {
+                if (note.startTime > topTime && note.endTime < bottomTime) {
                     continue;
                 }
                 int duration = note.endTime - note.startTime;
@@ -148,17 +135,45 @@ public class Game {
         ctx.fillText(String.valueOf(combo), 10, 10);
     }
 
+    private void updateNoteState(Note note, NoteState state) {
+        if (state == NoteState.MISSED) combo = 0;
+        if (state == NoteState.CLEARED) combo++;
+        note.state = state;
+    }
+
     public void onKeyPressed(KeyEvent event) {
         var code = event.getCode().getChar();
         if (code.length() > 0) {
-            pressedKeys.add(code.charAt(0));
+            char c = code.charAt(0);
+            pressedKeys.add(c);
+            int num = keyConverter.keyToLaneNum(c);
+            if (num == -1) return; // not a valid key
+            var lane = lanes.get(keyConverter.keyToLaneNum(c));
+            for (var note : lane.currentNotes) {
+                if (note.isShortNote()) {
+                    updateNoteState(note, NoteState.CLEARED);
+                } else if (note.startTime - accuracyRange <= currentTime && currentTime <= note.endTime + accuracyRange) {
+                    updateNoteState(note, NoteState.PRESSED);
+                }
+            }
         }
     }
 
     public void onKeyReleased(KeyEvent event) {
         var code = event.getCode().getChar();
         if (code.length() > 0) {
-            pressedKeys.remove(code.charAt(0));
+            char c = code.charAt(0);
+            pressedKeys.remove(c);
+            int num = keyConverter.keyToLaneNum(c);
+            if (num == -1) return; // not a valid key
+            var lane = lanes.get(keyConverter.keyToLaneNum(c));
+            for (var note : lane.currentNotes) {
+                if (note.state == NoteState.PRESSED && note.startTime - accuracyRange <= currentTime && currentTime <= note.endTime + accuracyRange) {
+                    updateNoteState(note, NoteState.CLEARED);
+                } else if (note.state != NoteState.CLEARED) {
+                    updateNoteState(note, NoteState.MISSED);
+                }
+            }
         }
     }
 }

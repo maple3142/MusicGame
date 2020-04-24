@@ -8,7 +8,7 @@ import java.util.List;
 public class HitObjectsReader {
     public List<Note> read() throws Exception {
         var notes = new ArrayList<Note>();
-        var p = getClass().getResource("pupa.txt").toURI();
+        var p = getClass().getResource("yasashisani.txt").toURI();
         var lines = Files.readAllLines(Paths.get(p));
         for (var line : lines) {
             var toks = line.split(",");
