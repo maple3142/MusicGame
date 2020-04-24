@@ -25,7 +25,7 @@ public class Main extends Application {
         stage.setResizable(false);
         stage.show();
 
-        var game = new Game(w, h);
+        var game = new Game(canvas);
         var bm = new Beatmap();
         bm.notes = new HitObjectsReader().read();
         bm.numLanes = 4;
@@ -35,14 +35,13 @@ public class Main extends Application {
         var timer = new AnimationTimer() {
             @Override
             public void handle(long now) {
-                game.loop(now, ctx);
+                game.loop(now);
             }
         };
         root.setOnKeyPressed(game::onKeyPressed);
         root.setOnKeyReleased(game::onKeyReleased);
         root.requestFocus();
         player.setOnReady(timer::start);
-
     }
 
     public static void main(String[] args) {

@@ -1,5 +1,6 @@
 package sample;
 
+import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.media.MediaPlayer;
@@ -32,6 +33,8 @@ public class Game {
     private List<Lane> lanes = new ArrayList<>();
     private Set<Character> pressedKeys = new HashSet<>();
     private MediaPlayer player;
+    private Canvas canvas;
+    private GraphicsContext ctx;
 
     public void setBeatmap(Beatmap bm) {
         this.numLanes = bm.numLanes;
@@ -51,14 +54,16 @@ public class Game {
         this.player = player;
     }
 
-    public Game(int width, int height) {
-        this.width = width;
-        this.height = height;
+    public Game(Canvas canvas) {
+        this.canvas = canvas;
+        this.ctx = canvas.getGraphicsContext2D();
+        width = (int) canvas.getWidth();
+        height = (int) canvas.getHeight();
         padding = (int) (width * 0.3);
         totalLaneWidth = width - 2 * padding;
     }
 
-    private void drawLanes(GraphicsContext ctx) {
+    private void drawLanes() {
         ctx.setFill(laneColor);
         ctx.fillRect(padding, 0, totalLaneWidth, height);
         for (int i = 0; i <= numLanes; i++) {
@@ -68,7 +73,7 @@ public class Game {
         }
     }
 
-    private void drawHitBar(GraphicsContext ctx) {
+    private void drawHitBar() {
         ctx.setFill(hitBarColor);
         ctx.fillRect(padding, height - bottomPadding - hitBarHeight, totalLaneWidth, hitBarHeight);
     }
@@ -76,11 +81,11 @@ public class Game {
     private long firstLoopTime = 0;
     private int currentTime;
 
-    public void loop(long now, GraphicsContext ctx) {
+    public void loop(long now) {
         // now is nanoseconds
         ctx.clearRect(0, 0, width, height);
-        drawLanes(ctx);
-        drawHitBar(ctx);
+        drawLanes();
+        drawHitBar();
         if (firstLoopTime == 0) {
             firstLoopTime = now;
             combo = 0;
