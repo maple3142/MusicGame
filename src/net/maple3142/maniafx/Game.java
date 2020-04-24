@@ -24,11 +24,12 @@ public class Game {
     private int numLanes;
     private LaneToKeyConverter keyConverter;
     final private int laneWidth = 40;
-    final private int range100 = 200;
-    final private int range200 = 150;
-    final private int range300 = 100;
+    final private int range0 = 200;
+    final private int range100 = 150;
+    final private int range200 = 100;
+    final private int range300 = 50;
     final private int speed = 80; // how much pixels should note move per 1/10 second
-    final private int bottomPadding = 200;
+    final private int bottomPadding = 150;
     final private int hitBarHeight = 10;
     final private Color laneColor = Color.MEDIUMPURPLE;
     final private Color lanePressedColor = Color.PURPLE;
@@ -139,10 +140,10 @@ public class Game {
         int bottomTime = currentTime - (bottomPadding + hitBarHeight / 2) * 100 / speed;
         for (int i = 0; i < numLanes; i++) {
             var lane = lanes.get(i);
-            while (!lane.starting.isEmpty() && lane.starting.peek().time <= currentTime + range100) {
+            while (!lane.starting.isEmpty() && lane.starting.peek().time <= currentTime + range0) {
                 lane.currentNotes.add(lane.starting.poll().note);
             }
-            while (!lane.ending.isEmpty() && lane.ending.peek().time <= currentTime - range100) {
+            while (!lane.ending.isEmpty() && lane.ending.peek().time <= currentTime - range0) {
                 var note = lane.ending.poll().note;
                 lane.currentNotes.remove(note);
                 if (note.getState() == NoteState.NORMAL || note.getState() == NoteState.PRESSED) {
@@ -194,24 +195,26 @@ public class Game {
             if (num == -1) return; // not a valid key
             var lane = lanes.get(num);
             for (var note : lane.currentNotes) {
-                if (Math.abs(note.getStartTime() - currentTime) <= range100) {
+                if (Math.abs(note.getStartTime() - currentTime) <= range0) {
                     if (note.isShortNote()) {
                         if (note.getState() != NoteState.CLEARED) {
                             note.setState(NoteState.CLEARED);
                             hud.addCombo();
                             if (Math.abs(note.getStartTime() - currentTime) <= range300) {
                                 hud.addScoreWeighed(300);
-                            }
-                            if (Math.abs(note.getStartTime() - currentTime) <= range200) {
+                            } else if (Math.abs(note.getStartTime() - currentTime) <= range200) {
                                 hud.addScoreWeighed(200);
-                            }
-                            if (Math.abs(note.getStartTime() - currentTime) <= range100) {
+                            } else if (Math.abs(note.getStartTime() - currentTime) <= range100) {
                                 hud.addScoreWeighed(100);
+                            } else {
+                                note.setState(NoteState.MISSED);
+                                hud.setCombo(0);
                             }
-                            break; // each press should only clear one note
+                            break; // each press should only handle one note
                         }
-                    } else {
+                    } else if (Math.abs(note.getStartTime() - currentTime) <= range100) {
                         note.setState(NoteState.PRESSED);
+                        break;
                     }
                 }
             }
@@ -233,14 +236,13 @@ public class Game {
                     hud.addCombo();
                     if (Math.abs(note.getEndTime() - currentTime) <= range300) {
                         hud.addScoreWeighed(300);
-                    }
-                    if (Math.abs(note.getEndTime() - currentTime) <= range200) {
+                    } else if (Math.abs(note.getEndTime() - currentTime) <= range200) {
                         hud.addScoreWeighed(200);
-                    }
-                    if (Math.abs(note.getEndTime() - currentTime) <= range100) {
+                    } else if (Math.abs(note.getEndTime() - currentTime) <= range100) {
                         hud.addScoreWeighed(100);
                     }
-                } else if (note.getState() != NoteState.CLEARED) {
+                    break;
+                } else if (note.getState() != NoteState.CLEARED || note.getState() != NoteState.MISSED) {
                     note.setState(NoteState.MISSED);
                     hud.setCombo(0);
                 }
