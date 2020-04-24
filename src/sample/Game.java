@@ -121,7 +121,8 @@ public class Game {
                 var note = lane.ending.poll().note;
                 lane.currentNotes.remove(note);
                 if (note.state == NoteState.NORMAL || note.state == NoteState.PRESSED) {
-                    updateNoteState(note, NoteState.MISSED);
+                    note.state = NoteState.MISSED;
+                    hud.setCombo(0);
                 }
             }
             {
@@ -156,12 +157,6 @@ public class Game {
         }
     }
 
-    private void updateNoteState(Note note, NoteState state) {
-        if (state == NoteState.MISSED) hud.setCombo(0);
-        if (state == NoteState.CLEARED) hud.addCombo();
-        note.state = state;
-    }
-
     public void onKeyPressed(KeyEvent event) {
         var code = event.getCode().getChar();
         if (code.length() > 0) {
@@ -171,11 +166,26 @@ public class Game {
             if (num == -1) return; // not a valid key
             var lane = lanes.get(num);
             for (var note : lane.currentNotes) {
-                if (note.isShortNote() && note.state != NoteState.CLEARED) {
-                    updateNoteState(note, NoteState.CLEARED);
-                    break;
-                } else if (note.startTime - range100 <= currentTime && currentTime <= note.endTime + range100) {
-                    updateNoteState(note, NoteState.PRESSED);
+
+                if (note.startTime - range100 <= currentTime && currentTime <= note.endTime + range100) {
+                    if (note.isShortNote()) {
+                        if (note.state != NoteState.CLEARED) {
+                            note.state = NoteState.CLEARED;
+                            hud.addCombo();
+                            if (note.startTime - range300 <= currentTime && currentTime <= note.endTime + range300) {
+                                hud.addScoreWeighed(300);
+                            }
+                            if (note.startTime - range200 <= currentTime && currentTime <= note.endTime + range200) {
+                                hud.addScoreWeighed(200);
+                            }
+                            if (note.startTime - range100 <= currentTime && currentTime <= note.endTime + range100) {
+                                hud.addScoreWeighed(100);
+                            }
+                            break; // each press should only clear one note
+                        }
+                    } else {
+                        note.state = NoteState.PRESSED;
+                    }
                 }
             }
         }
@@ -192,9 +202,10 @@ public class Game {
             for (var note : lane.currentNotes) {
                 if (note.isShortNote()) continue;
                 if (note.state == NoteState.PRESSED && note.startTime - range100 <= currentTime && currentTime <= note.endTime + range100) {
-                    updateNoteState(note, NoteState.CLEARED);
+                    note.state = NoteState.CLEARED;
                 } else if (note.state != NoteState.CLEARED) {
-                    updateNoteState(note, NoteState.MISSED);
+                    note.state = NoteState.MISSED;
+                    hud.setCombo(0);
                 }
             }
         }
