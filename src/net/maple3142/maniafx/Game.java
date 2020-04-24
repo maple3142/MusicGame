@@ -1,11 +1,13 @@
 package net.maple3142.maniafx;
 
+import javafx.animation.AnimationTimer;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.Pane;
 import javafx.scene.media.MediaPlayer;
 import javafx.scene.paint.Color;
+import net.maple3142.maniafx.beatmap.Beatmap;
 import net.maple3142.maniafx.notes.NoteState;
 
 import java.util.ArrayList;
@@ -46,11 +48,12 @@ public class Game {
     private HUD hud;
 
     public void setBeatmap(Beatmap bm) {
-        this.numLanes = bm.numLanes;
-        keyConverter = new LaneToKeyConverter(bm.numLanes);
+        this.player = new MediaPlayer(bm.getMusic());
+        this.numLanes = bm.getNumLanes();
+        keyConverter = new LaneToKeyConverter(numLanes);
         for (int i = 0; i < numLanes; i++) {
             int finalI = i;
-            var notes = bm.notes.stream().filter(n -> finalI == n.getLaneNum()).collect(Collectors.toList());
+            var notes = bm.getNotes().stream().filter(n -> finalI == n.getLaneNum()).collect(Collectors.toList());
             var lane = new Lane();
             lane.insertNotes(notes);
             this.lanes.add(lane);
@@ -61,8 +64,14 @@ public class Game {
         drawHitBar();
     }
 
-    public void setPlayer(MediaPlayer player) {
-        this.player = player;
+    public void start() {
+        var timer = new AnimationTimer() {
+            @Override
+            public void handle(long now) {
+                loop(now);
+            }
+        };
+        player.setOnReady(timer::start);
     }
 
     public Game(Pane root, int w, int h) {

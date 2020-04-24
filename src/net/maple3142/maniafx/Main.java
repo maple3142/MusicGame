@@ -7,6 +7,9 @@ import javafx.scene.layout.Pane;
 import javafx.scene.media.Media;
 import javafx.scene.media.MediaPlayer;
 import javafx.stage.Stage;
+import net.maple3142.maniafx.beatmap.BeatmapReader;
+
+import java.nio.file.Paths;
 
 public class Main extends Application {
 
@@ -21,13 +24,14 @@ public class Main extends Application {
         stage.setResizable(false);
         stage.show();
 
+        var bmr = new BeatmapReader(Paths.get(getClass().getResource("/KimitoDarekanoYasashisani").toURI()));
+        var list = bmr.read();
+        for (var bm : list) {
+            System.out.println(bm.getMetadata().getVersion());
+        }
         var game = new Game(root, w, h);
-        var bm = new Beatmap();
-        bm.notes = new HitObjectsReader().read();
-        bm.numLanes = 4;
-        game.setBeatmap(bm);
+        game.setBeatmap(list.get(1));
         var player = new MediaPlayer(new Media(getClass().getResource("/yasashisani.mp3").toString()));
-        game.setPlayer(player);
         var timer = new AnimationTimer() {
             @Override
             public void handle(long now) {

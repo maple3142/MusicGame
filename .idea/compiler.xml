@@ -11,7 +11,6 @@
       <entry name="!?*.kt" />
       <entry name="!?*.clj" />
       <entry name="*.txt" />
-      <entry name="*.mp3" />
     </wildcardResourcePatterns>
   </component>
 </project>
