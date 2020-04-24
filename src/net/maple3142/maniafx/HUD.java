@@ -1,4 +1,4 @@
-package sample;
+package net.maple3142.maniafx;
 
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
