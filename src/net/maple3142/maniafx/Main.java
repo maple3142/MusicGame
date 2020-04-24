@@ -1,14 +1,15 @@
 package net.maple3142.maniafx;
 
-import javafx.animation.AnimationTimer;
 import javafx.application.Application;
+import javafx.geometry.Pos;
 import javafx.scene.Scene;
+import javafx.scene.control.Button;
 import javafx.scene.layout.Pane;
-import javafx.scene.media.Media;
-import javafx.scene.media.MediaPlayer;
+import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import net.maple3142.maniafx.beatmap.BeatmapReader;
 
+import java.nio.file.Files;
 import java.nio.file.Paths;
 
 public class Main extends Application {
@@ -17,21 +18,33 @@ public class Main extends Application {
     public void start(Stage stage) throws Exception {
         int w = 600;
         int h = 800;
+
         var root = new Pane();
-        var scene = new Scene(root, w, h);
-        stage.setTitle("Test Game");
-        stage.setScene(scene);
+        var gameScene = new Scene(root, w, h);
+        var game = new Game(root, w, h);
+        var box = new VBox();
+        box.setSpacing(10);
+        box.setAlignment(Pos.CENTER);
+        var builtins = Files.newDirectoryStream(Paths.get(getClass().getResource("/builtin_maps").toURI()));
+        for (var p : builtins) {
+            var list = new BeatmapReader(p).read();
+            for (var bm : list) {
+                var btn = new Button(bm.getMetadata().getTitleUnicode() + " [" + bm.getMetadata().getVersion() + "]");
+                box.getChildren().add(btn);
+                btn.setOnAction(event -> {
+                    stage.setScene(gameScene);
+                    game.setBeatmap(bm);
+                    game.start();
+                });
+            }
+        }
+
+        var startScene = new Scene(box, w, h);
+        game.setOnEnd(() -> stage.setScene(startScene));
+        stage.setTitle("ManiaFX");
+        stage.setScene(startScene);
         stage.setResizable(false);
         stage.show();
-
-        root.requestFocus();
-        var bmr = new BeatmapReader(Paths.get(getClass().getResource("/KimitoDarekanoYasashisani").toURI()));
-        var list = bmr.read();
-        var game = new Game(root, w, h);
-        game.setBeatmap(list.get(1));
-        root.setOnKeyPressed(game::onKeyPressed);
-        root.setOnKeyReleased(game::onKeyReleased);
-        game.start();
     }
 
     public static void main(String[] args) {

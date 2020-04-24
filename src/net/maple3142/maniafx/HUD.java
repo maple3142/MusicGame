@@ -35,7 +35,7 @@ public class HUD {
         // score
         ctx.setTextAlign(TextAlignment.RIGHT);
         ctx.setFont(new Font(20));
-        ctx.fillText(String.valueOf(score), width - 20, 20);
+        ctx.fillText(String.valueOf(score), width - 20, 40);
     }
 
     public void setCombo(int combo) {

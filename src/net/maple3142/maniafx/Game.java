@@ -39,6 +39,7 @@ public class Game {
     private Set<Character> pressedKeys = new HashSet<>();
     private MediaPlayer player;
 
+    private Pane root;
     private Canvas bgCanvas;
     private GraphicsContext bgCtx;
     private Canvas noteCanvas;
@@ -46,6 +47,8 @@ public class Game {
     private Canvas keyCanvas;
     private GraphicsContext keyCtx;
     private HUD hud;
+
+    private GameEndListener gameEndListener;
 
     public void setBeatmap(Beatmap bm) {
         this.player = new MediaPlayer(bm.getMusic());
@@ -65,6 +68,10 @@ public class Game {
         drawHitBar();
     }
 
+    public void setOnEnd(GameEndListener f) {
+        this.gameEndListener = f;
+    }
+
     public void start() {
         var timer = new AnimationTimer() {
             @Override
@@ -73,6 +80,12 @@ public class Game {
             }
         };
         player.setOnReady(timer::start);
+        player.setOnEndOfMedia(() -> {
+            if (gameEndListener != null) {
+                gameEndListener.invoke();
+            }
+        });
+        root.requestFocus();
     }
 
     public Game(Pane root, int w, int h) {
@@ -84,8 +97,11 @@ public class Game {
         keyCtx = keyCanvas.getGraphicsContext2D();
         hud = new HUD(new Canvas(w, h));
         root.getChildren().addAll(bgCanvas, noteCanvas, keyCanvas, hud.canvas);
+        root.setOnKeyPressed(this::onKeyPressed);
+        root.setOnKeyReleased(this::onKeyReleased);
         width = (int) bgCanvas.getWidth();
         height = (int) bgCanvas.getHeight();
+        this.root = root;
     }
 
     private void drawLanes() {
@@ -174,7 +190,6 @@ public class Game {
         if (code.length() > 0) {
             char c = code.charAt(0);
             pressedKeys.add(c);
-            System.out.println(pressedKeys);
             int num = keyConverter.keyToLaneNum(c);
             if (num == -1) return; // not a valid key
             var lane = lanes.get(num);
