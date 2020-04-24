@@ -10,19 +10,19 @@ public class BeatmapMetadata {
             meta.setTitle(mp.get("Title"));
         }
         if (mp.containsKey("TitleUnicode")) {
-            meta.setTitle(mp.get("TitleUnicode"));
+            meta.setTitleUnicode(mp.get("TitleUnicode"));
         }
         if (mp.containsKey("Artist")) {
-            meta.setTitle(mp.get("Artist"));
+            meta.setArtist(mp.get("Artist"));
         }
         if (mp.containsKey("ArtistUnicode")) {
-            meta.setTitle(mp.get("ArtistUnicode"));
+            meta.setArtistUnicode(mp.get("ArtistUnicode"));
         }
         if (mp.containsKey("Creator")) {
-            meta.setTitle(mp.get("Creator"));
+            meta.setCreator(mp.get("Creator"));
         }
         if (mp.containsKey("Version")) {
-            meta.setTitle(mp.get("Version"));
+            meta.setVersion(mp.get("Version"));
         }
         return meta;
     }

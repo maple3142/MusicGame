@@ -2,6 +2,7 @@ package net.maple3142.maniafx.beatmap;
 
 import javafx.scene.media.Media;
 import net.maple3142.maniafx.notes.Note;
+import net.maple3142.maniafx.notes.ShortNote;
 
 import java.util.List;
 

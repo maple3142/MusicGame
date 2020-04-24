@@ -21,9 +21,9 @@ public class Game {
     private int height;
     private int padding;
     private int totalLaneWidth;
-    private int laneWidth;
     private int numLanes;
     private LaneToKeyConverter keyConverter;
+    final private int laneWidth = 40;
     final private int range100 = 200;
     final private int range200 = 150;
     final private int range300 = 100;
@@ -59,7 +59,8 @@ public class Game {
             this.lanes.add(lane);
             lane.keyCode = keyConverter.laneNumToKey(i);
         }
-        laneWidth = totalLaneWidth / numLanes;
+        totalLaneWidth = numLanes * laneWidth;
+        padding = (width - totalLaneWidth) / 2;
         drawLanes();
         drawHitBar();
     }
@@ -85,8 +86,6 @@ public class Game {
         root.getChildren().addAll(bgCanvas, noteCanvas, keyCanvas, hud.canvas);
         width = (int) bgCanvas.getWidth();
         height = (int) bgCanvas.getHeight();
-        padding = (int) (width * 0.3);
-        totalLaneWidth = width - 2 * padding;
     }
 
     private void drawLanes() {
@@ -130,8 +129,8 @@ public class Game {
             while (!lane.ending.isEmpty() && lane.ending.peek().time <= currentTime - range100) {
                 var note = lane.ending.poll().note;
                 lane.currentNotes.remove(note);
-                if (note.state == NoteState.NORMAL || note.state == NoteState.PRESSED) {
-                    note.state = NoteState.MISSED;
+                if (note.getState() == NoteState.NORMAL || note.getState() == NoteState.PRESSED) {
+                    note.setState(NoteState.MISSED);
                     hud.setCombo(0);
                 }
             }
@@ -145,7 +144,7 @@ public class Game {
                 keyCtx.fillRect(x + 1, height - bottomPadding, laneWidth - 2, height);
             }
             for (var note : lane.notes) {
-                if (note.state == NoteState.CLEARED) {
+                if (note.getState() == NoteState.CLEARED) {
                     continue;
                 }
                 if (note.getStartTime() > topTime && note.getEndTime() < bottomTime) {
@@ -158,11 +157,11 @@ public class Game {
                     noteHeight = (note.getEndTime() - note.getStartTime()) * speed / 100;
                 }
                 int range = topTime - currentTime;
-                double percent = (double) (topTime - note.getStartTime()) / range;
+                double percent = (double) (topTime - note.getEndTime()) / range;
                 int topDistance = (int) (heightToTop * percent);
-                if (note.state == NoteState.NORMAL) {
+                if (note.getState() == NoteState.NORMAL) {
                     noteCtx.setFill(noteColor);
-                } else if (note.state == NoteState.MISSED) {
+                } else if (note.getState() == NoteState.MISSED) {
                     noteCtx.setFill(Color.RED);
                 }
                 noteCtx.fillRect(padding + i * laneWidth + 1, topDistance, laneWidth - 2, noteHeight);
@@ -175,14 +174,15 @@ public class Game {
         if (code.length() > 0) {
             char c = code.charAt(0);
             pressedKeys.add(c);
+            System.out.println(pressedKeys);
             int num = keyConverter.keyToLaneNum(c);
             if (num == -1) return; // not a valid key
             var lane = lanes.get(num);
             for (var note : lane.currentNotes) {
                 if (Math.abs(note.getStartTime() - currentTime) <= range100) {
                     if (note.isShortNote()) {
-                        if (note.state != NoteState.CLEARED) {
-                            note.state = NoteState.CLEARED;
+                        if (note.getState() != NoteState.CLEARED) {
+                            note.setState(NoteState.CLEARED);
                             hud.addCombo();
                             if (Math.abs(note.getStartTime() - currentTime) <= range300) {
                                 hud.addScoreWeighed(300);
@@ -196,7 +196,7 @@ public class Game {
                             break; // each press should only clear one note
                         }
                     } else {
-                        note.state = NoteState.PRESSED;
+                        note.setState(NoteState.PRESSED);
                     }
                 }
             }
@@ -213,8 +213,8 @@ public class Game {
             var lane = lanes.get(num);
             for (var note : lane.currentNotes) {
                 if (note.isShortNote()) continue;
-                if (note.state == NoteState.PRESSED && Math.abs(note.getEndTime() - currentTime) <= range100) {
-                    note.state = NoteState.CLEARED;
+                if (note.getState() == NoteState.PRESSED && Math.abs(note.getEndTime() - currentTime) <= range100) {
+                    note.setState(NoteState.CLEARED);
                     hud.addCombo();
                     if (Math.abs(note.getEndTime() - currentTime) <= range300) {
                         hud.addScoreWeighed(300);
@@ -225,8 +225,8 @@ public class Game {
                     if (Math.abs(note.getEndTime() - currentTime) <= range100) {
                         hud.addScoreWeighed(100);
                     }
-                } else if (note.state != NoteState.CLEARED) {
-                    note.state = NoteState.MISSED;
+                } else if (note.getState() != NoteState.CLEARED) {
+                    note.setState(NoteState.MISSED);
                     hud.setCombo(0);
                 }
             }

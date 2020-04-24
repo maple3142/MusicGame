@@ -11,6 +11,7 @@
       <entry name="!?*.kt" />
       <entry name="!?*.clj" />
       <entry name="*.txt" />
+      <entry name="/assets/*" />
     </wildcardResourcePatterns>
   </component>
 </project>

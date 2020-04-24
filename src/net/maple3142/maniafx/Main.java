@@ -15,7 +15,7 @@ public class Main extends Application {
 
     @Override
     public void start(Stage stage) throws Exception {
-        int w = 400;
+        int w = 600;
         int h = 800;
         var root = new Pane();
         var scene = new Scene(root, w, h);
@@ -24,24 +24,14 @@ public class Main extends Application {
         stage.setResizable(false);
         stage.show();
 
+        root.requestFocus();
         var bmr = new BeatmapReader(Paths.get(getClass().getResource("/KimitoDarekanoYasashisani").toURI()));
         var list = bmr.read();
-        for (var bm : list) {
-            System.out.println(bm.getMetadata().getVersion());
-        }
         var game = new Game(root, w, h);
         game.setBeatmap(list.get(1));
-        var player = new MediaPlayer(new Media(getClass().getResource("/yasashisani.mp3").toString()));
-        var timer = new AnimationTimer() {
-            @Override
-            public void handle(long now) {
-                game.loop(now);
-            }
-        };
         root.setOnKeyPressed(game::onKeyPressed);
         root.setOnKeyReleased(game::onKeyReleased);
-        root.requestFocus();
-        player.setOnReady(timer::start);
+        game.start();
     }
 
     public static void main(String[] args) {

@@ -1,9 +1,9 @@
 package net.maple3142.maniafx.beatmap;
 
 import javafx.scene.media.Media;
-import javafx.util.Pair;
 import net.maple3142.maniafx.notes.LongNote;
 import net.maple3142.maniafx.notes.Note;
+import net.maple3142.maniafx.notes.ShortNote;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -30,19 +30,22 @@ public class BeatmapReader {
             var s = parse(lines);
             var general = parseInner(s.get("General"));
             var metadata = parseInner(s.get("Metadata"));
+            var difficulty = parseInner(s.get("Difficulty"));
             var hitObjects = s.get("HitObjects");
             if (general == null) continue;
             if (!general.get("Mode").equals("3")) continue; // not mania map
             if (!general.containsKey("AudioFilename")) continue; // unlikely, but just be sure
             if (metadata == null) continue; // unlikely, but just be sure
+            if (difficulty == null) continue; // unlikely, but just be sure
+            if (!difficulty.containsKey("CircleSize")) continue; // unlikely, but just be sure
             if (hitObjects == null) continue; // unlikely, but just be sure
             var bm = new Beatmap();
             bm.setMetadata(BeatmapMetadata.fromMap(metadata));
             var musicPath = Paths.get(beatmapDir.toString(), general.get("AudioFilename"));
             bm.setMusic(new Media(musicPath.toUri().toString()));
-            var p = parseHitObjects(hitObjects);
-            bm.setNotes(p.getKey());
-            bm.setNumLanes(p.getValue());
+            int keyCount = Integer.parseInt(difficulty.get("CircleSize")); // CircleSize is keyCount is Mania mode...
+            bm.setNotes(parseHitObjects(hitObjects, keyCount));
+            bm.setNumLanes(keyCount);
             bms.add(bm);
         }
         return bms;
@@ -81,27 +84,23 @@ public class BeatmapReader {
         return hm;
     }
 
-    private Pair<List<Note>, Integer> parseHitObjects(List<String> lines) {
+    private List<Note> parseHitObjects(List<String> lines, int keyCount) {
         var notes = new ArrayList<Note>();
-        int maxLane = 0;
         for (var line : lines) {
             var tokens = line.split(":")[0].split(",");
             if (tokens.length < 4) continue;
             var x = Integer.parseInt(tokens[0]);
-            int lane = (x - 64) / 128;
+            int lane = (int) Math.floor(x * keyCount / 512.0);
             int start = Integer.parseInt(tokens[2]);
             int type = Integer.parseInt(tokens[3]);
             if ((type & 1) != 0) { // type normal note
-                notes.add(new Note(start, lane));
+                notes.add(new ShortNote(start, lane));
             } else if ((type & 1 << 7) != 0) { // type hold
                 assert (tokens.length >= 6);
                 int end = Integer.parseInt(tokens[5]);
                 notes.add(new LongNote(start, end, lane));
             }
-            if (lane > maxLane) {
-                maxLane = lane;
-            }
         }
-        return new Pair<>(notes, maxLane + 1);
+        return notes;
     }
 }

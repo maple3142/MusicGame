@@ -1,31 +1,29 @@
 package net.maple3142.maniafx.notes;
 
-public class LongNote implements Note {
+public class ShortNote implements Note {
     private int startTime;
-    private int endTime;
     private int laneNum;
     public NoteState state = NoteState.NORMAL;
 
-    public LongNote(int startTime, int endTime, int laneNum) {
+    public ShortNote(int startTime, int laneNum) {
         this.startTime = startTime;
-        this.endTime = endTime;
         this.laneNum = laneNum;
     }
 
     public boolean isShortNote() {
-        return false;
+        return true;
     }
 
     public int getLaneNum() {
-        return laneNum;
+        return this.laneNum;
     }
 
     public int getStartTime() {
-        return startTime;
+        return this.startTime;
     }
 
     public int getEndTime() {
-        return endTime;
+        return this.startTime;
     }
 
     @Override

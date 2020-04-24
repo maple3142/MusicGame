@@ -1,28 +1,15 @@
 package net.maple3142.maniafx.notes;
 
-public class Note {
-    private int startTime;
-    private int laneNum;
-    public NoteState state = NoteState.NORMAL;
+public interface Note {
+    boolean isShortNote();
 
-    public Note(int startTime, int laneNum) {
-        this.startTime = startTime;
-        this.laneNum = laneNum;
-    }
+    int getLaneNum();
 
-    public boolean isShortNote() {
-        return true;
-    }
+    int getStartTime();
 
-    public int getLaneNum() {
-        return this.laneNum;
-    }
+    int getEndTime();
 
-    public int getStartTime() {
-        return this.startTime;
-    }
+    void setState(NoteState state);
 
-    public int getEndTime() {
-        return this.startTime;
-    }
+    NoteState getState();
 }
