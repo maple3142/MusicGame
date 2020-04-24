@@ -10,6 +10,12 @@ public class ShortNote implements Note {
         this.laneNum = laneNum;
     }
 
+    public ShortNote(ShortNote note) {
+        this.startTime = note.startTime;
+        this.laneNum = note.laneNum;
+        this.state = note.state;
+    }
+
     public boolean isShortNote() {
         return true;
     }
@@ -26,13 +32,12 @@ public class ShortNote implements Note {
         return this.startTime;
     }
 
-    @Override
     public void setState(NoteState state) {
         this.state = state;
     }
 
-    @Override
     public NoteState getState() {
         return this.state;
     }
+
 }

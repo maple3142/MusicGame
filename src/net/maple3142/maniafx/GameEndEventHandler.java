@@ -1,5 +1,5 @@
 package net.maple3142.maniafx;
 
-public interface GameEndListener {
+public interface GameEndEventHandler {
     void invoke(); // TODO: Pass game results to listener
 }

@@ -1,8 +1,11 @@
 package net.maple3142.maniafx.beatmap;
 
 import javafx.scene.media.Media;
+import net.maple3142.maniafx.notes.LongNote;
 import net.maple3142.maniafx.notes.Note;
+import net.maple3142.maniafx.notes.ShortNote;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class Beatmap {
@@ -41,5 +44,17 @@ public class Beatmap {
 
     public void setMusic(Media music) {
         this.music = music;
+    }
+
+    public List<Note> getClonedNotes() {
+        var newList = new ArrayList<Note>();
+        for (var note : notes) {
+            if (note.isShortNote()) {
+                newList.add(new ShortNote((ShortNote) note));
+            } else {
+                newList.add(new LongNote((LongNote) note));
+            }
+        }
+        return newList;
     }
 }

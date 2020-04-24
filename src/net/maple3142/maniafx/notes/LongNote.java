@@ -12,6 +12,13 @@ public class LongNote implements Note {
         this.laneNum = laneNum;
     }
 
+    public LongNote(LongNote note) {
+        this.startTime = note.startTime;
+        this.endTime = note.endTime;
+        this.laneNum = note.laneNum;
+        this.state = note.state;
+    }
+
     public boolean isShortNote() {
         return false;
     }
@@ -28,12 +35,10 @@ public class LongNote implements Note {
         return endTime;
     }
 
-    @Override
     public void setState(NoteState state) {
         this.state = state;
     }
 
-    @Override
     public NoteState getState() {
         return this.state;
     }

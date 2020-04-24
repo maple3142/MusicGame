@@ -11,9 +11,7 @@ import net.maple3142.maniafx.beatmap.Beatmap;
 import net.maple3142.maniafx.notes.NoteState;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 public class Game {
@@ -36,9 +34,9 @@ public class Game {
     final private Color noteColor = Color.WHITE;
     final private Color hitBarColor = Color.DARKBLUE;
     final private Color hitBarEffectColor = Color.YELLOWGREEN;
-    private List<Lane> lanes = new ArrayList<>();
-    private Set<Character> pressedKeys = new HashSet<>();
+    private List<Lane> lanes;
     private MediaPlayer player;
+    private KeyBoardEventWrapper kbWrapper;
 
     private Pane root;
     private Canvas bgCanvas;
@@ -49,17 +47,19 @@ public class Game {
     private GraphicsContext keyCtx;
     private HUD hud;
 
-    private GameEndListener gameEndListener;
+    private GameEndEventHandler gameEndEventHandler;
 
     public void setBeatmap(Beatmap bm) {
         this.player = new MediaPlayer(bm.getMusic());
         this.numLanes = bm.getNumLanes();
         keyConverter = new LaneToKeyConverter(numLanes);
+        this.lanes = new ArrayList<>();
+        var notes = bm.getClonedNotes();
         for (int i = 0; i < numLanes; i++) {
             int finalI = i;
-            var notes = bm.getNotes().stream().filter(n -> finalI == n.getLaneNum()).collect(Collectors.toList());
+            var laneNotes = notes.stream().filter(n -> finalI == n.getLaneNum()).collect(Collectors.toList());
             var lane = new Lane();
-            lane.insertNotes(notes);
+            lane.insertNotes(laneNotes);
             this.lanes.add(lane);
             lane.keyCode = keyConverter.laneNumToKey(i);
         }
@@ -67,11 +67,16 @@ public class Game {
         padding = (width - totalLaneWidth) / 2;
         drawLanes();
         drawHitBar();
+        hud.setCombo(0);
+        hud.setScore(0);
     }
 
-    public void setOnEnd(GameEndListener f) {
-        this.gameEndListener = f;
+    public void setOnEnd(GameEndEventHandler f) {
+        this.gameEndEventHandler = f;
     }
+
+    private long startTime;
+    private int currentTime;
 
     public void start() {
         var timer = new AnimationTimer() {
@@ -80,13 +85,19 @@ public class Game {
                 loop(now);
             }
         };
-        player.setOnReady(timer::start);
+        player.setOnReady(() -> {
+            timer.start();
+            player.play();
+            startTime = System.nanoTime();
+        });
         player.setOnEndOfMedia(() -> {
-            if (gameEndListener != null) {
-                gameEndListener.invoke();
+            timer.stop();
+            if (gameEndEventHandler != null) {
+                gameEndEventHandler.invoke();
             }
         });
         root.requestFocus();
+        System.out.println("Start");
     }
 
     public Game(Pane root, int w, int h) {
@@ -98,8 +109,9 @@ public class Game {
         keyCtx = keyCanvas.getGraphicsContext2D();
         hud = new HUD(new Canvas(w, h));
         root.getChildren().addAll(bgCanvas, noteCanvas, keyCanvas, hud.canvas);
-        root.setOnKeyPressed(this::onKeyPressed);
-        root.setOnKeyReleased(this::onKeyReleased);
+        kbWrapper = new KeyBoardEventWrapper(root);
+        kbWrapper.setOnKeyDown(this::onKeyDown);
+        kbWrapper.setOnKeyUp(this::onKeyUp);
         width = (int) bgCanvas.getWidth();
         height = (int) bgCanvas.getHeight();
         this.root = root;
@@ -120,21 +132,12 @@ public class Game {
         bgCtx.fillRect(padding, height - bottomPadding - hitBarHeight, totalLaneWidth, hitBarHeight);
     }
 
-    private long firstLoopTime = 0;
-    private int currentTime;
 
     public void loop(long now) {
         // now is nanoseconds
         noteCtx.clearRect(0, 0, width, height);
         keyCtx.clearRect(0, 0, width, height);
-        if (firstLoopTime == 0) {
-            firstLoopTime = now;
-            if (player != null) {
-                player.play();
-            }
-            return;
-        }
-        currentTime = (int) ((now - firstLoopTime) / (1000 * 1000));
+        currentTime = (int) ((now - startTime) / (1000 * 1000));
         int heightToTop = height - bottomPadding - hitBarHeight / 2;
         int topTime = currentTime + heightToTop * 100 / speed;
         int bottomTime = currentTime - (bottomPadding + hitBarHeight / 2) * 100 / speed;
@@ -152,7 +155,7 @@ public class Game {
                 }
             }
             {
-                if (pressedKeys.contains(lane.keyCode)) {
+                if (kbWrapper.isPressed(lane.keyCode)) {
                     keyCtx.setFill(lanePressedColor);
                 } else {
                     keyCtx.setFill(laneColor);
@@ -186,11 +189,10 @@ public class Game {
         }
     }
 
-    public void onKeyPressed(KeyEvent event) {
+    public void onKeyDown(KeyEvent event) {
         var code = event.getCode().getChar();
         if (code.length() > 0) {
             char c = code.charAt(0);
-            pressedKeys.add(c);
             int num = keyConverter.keyToLaneNum(c);
             if (num == -1) return; // not a valid key
             var lane = lanes.get(num);
@@ -221,11 +223,10 @@ public class Game {
         }
     }
 
-    public void onKeyReleased(KeyEvent event) {
+    public void onKeyUp(KeyEvent event) {
         var code = event.getCode().getChar();
         if (code.length() > 0) {
             char c = code.charAt(0);
-            pressedKeys.remove(c);
             int num = keyConverter.keyToLaneNum(c);
             if (num == -1) return; // not a valid key
             var lane = lanes.get(num);
