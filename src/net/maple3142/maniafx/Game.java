@@ -6,6 +6,7 @@ import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.Pane;
 import javafx.scene.media.MediaPlayer;
 import javafx.scene.paint.Color;
+import net.maple3142.maniafx.notes.NoteState;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -49,7 +50,7 @@ public class Game {
         keyConverter = new LaneToKeyConverter(bm.numLanes);
         for (int i = 0; i < numLanes; i++) {
             int finalI = i;
-            var notes = bm.notes.stream().filter(n -> finalI == n.laneNum).collect(Collectors.toList());
+            var notes = bm.notes.stream().filter(n -> finalI == n.getLaneNum()).collect(Collectors.toList());
             var lane = new Lane();
             lane.insertNotes(notes);
             this.lanes.add(lane);
@@ -138,14 +139,17 @@ public class Game {
                 if (note.state == NoteState.CLEARED) {
                     continue;
                 }
-                if (note.startTime > topTime && note.endTime < bottomTime) {
+                if (note.getStartTime() > topTime && note.getEndTime() < bottomTime) {
                     continue;
                 }
-                int duration = note.endTime - note.startTime;
-                int noteHeight = (duration * speed) / 100;
-                if (noteHeight < hitBarHeight) noteHeight = hitBarHeight;
+                int noteHeight;
+                if (note.isShortNote()) {
+                    noteHeight = hitBarHeight;
+                } else {
+                    noteHeight = (note.getEndTime() - note.getStartTime()) * speed / 100;
+                }
                 int range = topTime - currentTime;
-                double percent = (double) (topTime - note.startTime) / range;
+                double percent = (double) (topTime - note.getStartTime()) / range;
                 int topDistance = (int) (heightToTop * percent);
                 if (note.state == NoteState.NORMAL) {
                     noteCtx.setFill(noteColor);
@@ -166,19 +170,18 @@ public class Game {
             if (num == -1) return; // not a valid key
             var lane = lanes.get(num);
             for (var note : lane.currentNotes) {
-
-                if (note.startTime - range100 <= currentTime && currentTime <= note.endTime + range100) {
+                if (Math.abs(note.getStartTime() - currentTime) <= range100) {
                     if (note.isShortNote()) {
                         if (note.state != NoteState.CLEARED) {
                             note.state = NoteState.CLEARED;
                             hud.addCombo();
-                            if (note.startTime - range300 <= currentTime && currentTime <= note.endTime + range300) {
+                            if (Math.abs(note.getStartTime() - currentTime) <= range300) {
                                 hud.addScoreWeighed(300);
                             }
-                            if (note.startTime - range200 <= currentTime && currentTime <= note.endTime + range200) {
+                            if (Math.abs(note.getStartTime() - currentTime) <= range200) {
                                 hud.addScoreWeighed(200);
                             }
-                            if (note.startTime - range100 <= currentTime && currentTime <= note.endTime + range100) {
+                            if (Math.abs(note.getStartTime() - currentTime) <= range100) {
                                 hud.addScoreWeighed(100);
                             }
                             break; // each press should only clear one note
@@ -201,8 +204,18 @@ public class Game {
             var lane = lanes.get(num);
             for (var note : lane.currentNotes) {
                 if (note.isShortNote()) continue;
-                if (note.state == NoteState.PRESSED && note.startTime - range100 <= currentTime && currentTime <= note.endTime + range100) {
+                if (note.state == NoteState.PRESSED && Math.abs(note.getEndTime() - currentTime) <= range100) {
                     note.state = NoteState.CLEARED;
+                    hud.addCombo();
+                    if (Math.abs(note.getEndTime() - currentTime) <= range300) {
+                        hud.addScoreWeighed(300);
+                    }
+                    if (Math.abs(note.getEndTime() - currentTime) <= range200) {
+                        hud.addScoreWeighed(200);
+                    }
+                    if (Math.abs(note.getEndTime() - currentTime) <= range100) {
+                        hud.addScoreWeighed(100);
+                    }
                 } else if (note.state != NoteState.CLEARED) {
                     note.state = NoteState.MISSED;
                     hud.setCombo(0);

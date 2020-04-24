@@ -1,4 +1,4 @@
-package net.maple3142.maniafx;
+package net.maple3142.maniafx.notes;
 
 public enum NoteState {
     CLEARED,

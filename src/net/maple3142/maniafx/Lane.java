@@ -1,5 +1,7 @@
 package net.maple3142.maniafx;
 
+import net.maple3142.maniafx.notes.Note;
+
 import java.util.*;
 
 class NotePair {
@@ -20,13 +22,13 @@ public class Lane {
     public char keyCode;
 
     public void insertNotes(List<Note> notes) {
-        notes.sort(Comparator.comparingInt(a -> a.endTime));
+        notes.sort(Comparator.comparingInt(Note::getEndTime));
         for (var note : notes) {
-            ending.add(new NotePair(note, note.endTime));
+            ending.add(new NotePair(note, note.getEndTime()));
         }
-        notes.sort(Comparator.comparingInt(a -> a.startTime));
+        notes.sort(Comparator.comparingInt(Note::getStartTime));
         for (var note : notes) {
-            starting.add(new NotePair(note, note.startTime));
+            starting.add(new NotePair(note, note.getStartTime()));
         }
         this.notes = new HashSet<>(notes);
     }

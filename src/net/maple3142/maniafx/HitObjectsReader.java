@@ -1,5 +1,8 @@
 package net.maple3142.maniafx;
 
+import net.maple3142.maniafx.notes.LongNote;
+import net.maple3142.maniafx.notes.Note;
+
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -17,8 +20,11 @@ public class HitObjectsReader {
             int lane = (x - 64) / 128;
             int start = Integer.parseInt(toks[2]);
             int duration = Integer.parseInt(toks[3]);
-            var note = new Note(start, start + duration, lane);
-            notes.add(note);
+            if (duration < 20) {
+                notes.add(new Note(start, lane));
+            } else {
+                notes.add(new LongNote(start, start + duration, lane));
+            }
         }
         return notes;
     }
