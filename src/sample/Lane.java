@@ -16,7 +16,7 @@ public class Lane {
     public Set<Note> notes;
     public Queue<NotePair> starting = new LinkedList<>();
     public Queue<NotePair> ending = new LinkedList<>();
-    public Set<Note> currentNotes = new HashSet<>();
+    public Queue<Note> currentNotes = new ArrayDeque<>();
     public char keyCode;
 
     public void insertNotes(List<Note> notes) {

@@ -3,6 +3,7 @@ package sample;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.input.KeyEvent;
+import javafx.scene.layout.Pane;
 import javafx.scene.media.MediaPlayer;
 import javafx.scene.paint.Color;
 
@@ -19,9 +20,10 @@ public class Game {
     private int totalLaneWidth;
     private int laneWidth;
     private int numLanes;
-    private int combo;
     private LaneToKeyConverter keyConverter;
-    final private int accuracyRange = 100; // 50 ms
+    final private int range100 = 200;
+    final private int range200 = 150;
+    final private int range300 = 100;
     final private int speed = 80; // how much pixels should note move per 1/10 second
     final private int bottomPadding = 200;
     final private int hitBarHeight = 10;
@@ -29,12 +31,18 @@ public class Game {
     final private Color lanePressedColor = Color.PURPLE;
     final private Color noteColor = Color.WHITE;
     final private Color hitBarColor = Color.DARKBLUE;
-    final private Color hitBarEffectColor = Color.YELLOW;
+    final private Color hitBarEffectColor = Color.YELLOWGREEN;
     private List<Lane> lanes = new ArrayList<>();
     private Set<Character> pressedKeys = new HashSet<>();
     private MediaPlayer player;
-    private Canvas canvas;
-    private GraphicsContext ctx;
+
+    private Canvas bgCanvas;
+    private GraphicsContext bgCtx;
+    private Canvas noteCanvas;
+    private GraphicsContext noteCtx;
+    private Canvas keyCanvas;
+    private GraphicsContext keyCtx;
+    private HUD hud;
 
     public void setBeatmap(Beatmap bm) {
         this.numLanes = bm.numLanes;
@@ -48,34 +56,42 @@ public class Game {
             lane.keyCode = keyConverter.laneNumToKey(i);
         }
         laneWidth = totalLaneWidth / numLanes;
+        drawLanes();
+        drawHitBar();
     }
 
     public void setPlayer(MediaPlayer player) {
         this.player = player;
     }
 
-    public Game(Canvas canvas) {
-        this.canvas = canvas;
-        this.ctx = canvas.getGraphicsContext2D();
-        width = (int) canvas.getWidth();
-        height = (int) canvas.getHeight();
+    public Game(Pane root, int w, int h) {
+        bgCanvas = new Canvas(w, h);
+        bgCtx = bgCanvas.getGraphicsContext2D();
+        noteCanvas = new Canvas(w, h);
+        noteCtx = noteCanvas.getGraphicsContext2D();
+        keyCanvas = new Canvas(w, h);
+        keyCtx = keyCanvas.getGraphicsContext2D();
+        hud = new HUD(new Canvas(w, h));
+        root.getChildren().addAll(bgCanvas, noteCanvas, keyCanvas, hud.canvas);
+        width = (int) bgCanvas.getWidth();
+        height = (int) bgCanvas.getHeight();
         padding = (int) (width * 0.3);
         totalLaneWidth = width - 2 * padding;
     }
 
     private void drawLanes() {
-        ctx.setFill(laneColor);
-        ctx.fillRect(padding, 0, totalLaneWidth, height);
+        bgCtx.setFill(laneColor);
+        bgCtx.fillRect(padding, 0, totalLaneWidth, height);
         for (int i = 0; i <= numLanes; i++) {
             int x = padding + i * laneWidth;
-            ctx.setFill(Color.BLACK);
-            ctx.strokeLine(x, 0, x, height);
+            bgCtx.setFill(Color.BLACK);
+            bgCtx.strokeLine(x, 0, x, height);
         }
     }
 
     private void drawHitBar() {
-        ctx.setFill(hitBarColor);
-        ctx.fillRect(padding, height - bottomPadding - hitBarHeight, totalLaneWidth, hitBarHeight);
+        bgCtx.setFill(hitBarColor);
+        bgCtx.fillRect(padding, height - bottomPadding - hitBarHeight, totalLaneWidth, hitBarHeight);
     }
 
     private long firstLoopTime = 0;
@@ -83,12 +99,10 @@ public class Game {
 
     public void loop(long now) {
         // now is nanoseconds
-        ctx.clearRect(0, 0, width, height);
-        drawLanes();
-        drawHitBar();
+        noteCtx.clearRect(0, 0, width, height);
+        keyCtx.clearRect(0, 0, width, height);
         if (firstLoopTime == 0) {
             firstLoopTime = now;
-            combo = 0;
             if (player != null) {
                 player.play();
             }
@@ -100,20 +114,24 @@ public class Game {
         int bottomTime = currentTime - (bottomPadding + hitBarHeight / 2) * 100 / speed;
         for (int i = 0; i < numLanes; i++) {
             var lane = lanes.get(i);
-            while (!lane.starting.isEmpty() && lane.starting.peek().time <= currentTime + accuracyRange) {
+            while (!lane.starting.isEmpty() && lane.starting.peek().time <= currentTime + range100) {
                 lane.currentNotes.add(lane.starting.poll().note);
             }
-            while (!lane.ending.isEmpty() && lane.ending.peek().time <= currentTime - accuracyRange) {
+            while (!lane.ending.isEmpty() && lane.ending.peek().time <= currentTime - range100) {
                 var note = lane.ending.poll().note;
                 lane.currentNotes.remove(note);
                 if (note.state == NoteState.NORMAL || note.state == NoteState.PRESSED) {
                     updateNoteState(note, NoteState.MISSED);
                 }
             }
-            if (pressedKeys.contains(lane.keyCode)) {
-                ctx.setFill(lanePressedColor);
+            {
+                if (pressedKeys.contains(lane.keyCode)) {
+                    keyCtx.setFill(lanePressedColor);
+                } else {
+                    keyCtx.setFill(laneColor);
+                }
                 int x = padding + i * laneWidth;
-                ctx.fillRect(x + 1, height - bottomPadding, laneWidth - 2, height);
+                keyCtx.fillRect(x + 1, height - bottomPadding, laneWidth - 2, height);
             }
             for (var note : lane.notes) {
                 if (note.state == NoteState.CLEARED) {
@@ -129,20 +147,18 @@ public class Game {
                 double percent = (double) (topTime - note.startTime) / range;
                 int topDistance = (int) (heightToTop * percent);
                 if (note.state == NoteState.NORMAL) {
-                    ctx.setFill(noteColor);
+                    noteCtx.setFill(noteColor);
                 } else if (note.state == NoteState.MISSED) {
-                    ctx.setFill(Color.RED);
+                    noteCtx.setFill(Color.RED);
                 }
-                ctx.fillRect(padding + i * laneWidth + 1, topDistance, laneWidth - 2, noteHeight);
+                noteCtx.fillRect(padding + i * laneWidth + 1, topDistance, laneWidth - 2, noteHeight);
             }
         }
-        ctx.setFill(Color.BLACK);
-        ctx.fillText(String.valueOf(combo), 10, 10);
     }
 
     private void updateNoteState(Note note, NoteState state) {
-        if (state == NoteState.MISSED) combo = 0;
-        if (state == NoteState.CLEARED) combo++;
+        if (state == NoteState.MISSED) hud.setCombo(0);
+        if (state == NoteState.CLEARED) hud.addCombo();
         note.state = state;
     }
 
@@ -153,11 +169,12 @@ public class Game {
             pressedKeys.add(c);
             int num = keyConverter.keyToLaneNum(c);
             if (num == -1) return; // not a valid key
-            var lane = lanes.get(keyConverter.keyToLaneNum(c));
+            var lane = lanes.get(num);
             for (var note : lane.currentNotes) {
-                if (note.isShortNote()) {
+                if (note.isShortNote() && note.state != NoteState.CLEARED) {
                     updateNoteState(note, NoteState.CLEARED);
-                } else if (note.startTime - accuracyRange <= currentTime && currentTime <= note.endTime + accuracyRange) {
+                    break;
+                } else if (note.startTime - range100 <= currentTime && currentTime <= note.endTime + range100) {
                     updateNoteState(note, NoteState.PRESSED);
                 }
             }
@@ -171,9 +188,10 @@ public class Game {
             pressedKeys.remove(c);
             int num = keyConverter.keyToLaneNum(c);
             if (num == -1) return; // not a valid key
-            var lane = lanes.get(keyConverter.keyToLaneNum(c));
+            var lane = lanes.get(num);
             for (var note : lane.currentNotes) {
-                if (note.state == NoteState.PRESSED && note.startTime - accuracyRange <= currentTime && currentTime <= note.endTime + accuracyRange) {
+                if (note.isShortNote()) continue;
+                if (note.state == NoteState.PRESSED && note.startTime - range100 <= currentTime && currentTime <= note.endTime + range100) {
                     updateNoteState(note, NoteState.CLEARED);
                 } else if (note.state != NoteState.CLEARED) {
                     updateNoteState(note, NoteState.MISSED);
