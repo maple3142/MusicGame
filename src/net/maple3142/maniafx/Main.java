@@ -7,7 +7,8 @@ import javafx.scene.control.Button;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
-import net.maple3142.maniafx.beatmap.BeatmapReader;
+import net.maple3142.maniafx.gameplay.beatmap.BeatmapReader;
+import net.maple3142.maniafx.gameplay.Game;
 
 import java.nio.file.Files;
 import java.nio.file.Paths;

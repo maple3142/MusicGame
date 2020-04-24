@@ -1,9 +1,9 @@
-package net.maple3142.maniafx.beatmap;
+package net.maple3142.maniafx.gameplay.beatmap;
 
 import javafx.scene.media.Media;
-import net.maple3142.maniafx.notes.LongNote;
-import net.maple3142.maniafx.notes.Note;
-import net.maple3142.maniafx.notes.ShortNote;
+import net.maple3142.maniafx.gameplay.note.LongNote;
+import net.maple3142.maniafx.gameplay.note.Note;
+import net.maple3142.maniafx.gameplay.note.ShortNote;
 
 import java.util.ArrayList;
 import java.util.List;

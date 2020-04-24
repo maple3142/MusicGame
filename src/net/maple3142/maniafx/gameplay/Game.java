@@ -1,4 +1,4 @@
-package net.maple3142.maniafx;
+package net.maple3142.maniafx.gameplay;
 
 import javafx.animation.AnimationTimer;
 import javafx.scene.canvas.Canvas;
@@ -7,8 +7,10 @@ import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.Pane;
 import javafx.scene.media.MediaPlayer;
 import javafx.scene.paint.Color;
-import net.maple3142.maniafx.beatmap.Beatmap;
-import net.maple3142.maniafx.notes.NoteState;
+import net.maple3142.maniafx.gameplay.beatmap.Beatmap;
+import net.maple3142.maniafx.gameplay.lane.Lane;
+import net.maple3142.maniafx.gameplay.lane.LaneToKeyConverter;
+import net.maple3142.maniafx.gameplay.note.NoteState;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -143,11 +145,13 @@ public class Game {
         int bottomTime = currentTime - (bottomPadding + hitBarHeight / 2) * 100 / speed;
         for (int i = 0; i < numLanes; i++) {
             var lane = lanes.get(i);
-            while (!lane.starting.isEmpty() && lane.starting.peek().time <= currentTime + range0) {
-                lane.currentNotes.add(lane.starting.poll().note);
+            while (!lane.starting.isEmpty() && lane.starting.peek().getSecond() <= currentTime + range0) {
+                assert(!lane.starting.isEmpty()); // without this, idk why IDEA is complaining possible NullPointerException
+                lane.currentNotes.add(lane.starting.poll().getFirst());
             }
-            while (!lane.ending.isEmpty() && lane.ending.peek().time <= currentTime - range0) {
-                var note = lane.ending.poll().note;
+            while (!lane.ending.isEmpty() && lane.ending.peek().getSecond() <= currentTime - range0) {
+                assert(!lane.ending.isEmpty()); // same as above
+                var note = lane.ending.poll().getFirst();
                 lane.currentNotes.remove(note);
                 if (note.getState() == NoteState.NORMAL || note.getState() == NoteState.PRESSED) {
                     note.setState(NoteState.MISSED);

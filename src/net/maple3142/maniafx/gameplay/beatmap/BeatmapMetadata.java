@@ -1,4 +1,4 @@
-package net.maple3142.maniafx.beatmap;
+package net.maple3142.maniafx.gameplay.beatmap;
 
 import java.util.Map;
 

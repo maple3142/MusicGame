@@ -1,4 +1,4 @@
-package net.maple3142.maniafx;
+package net.maple3142.maniafx.gameplay.lane;
 
 public class LaneToKeyConverter {
     private int laneNum;
