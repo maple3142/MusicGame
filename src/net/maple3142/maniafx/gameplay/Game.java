@@ -40,6 +40,9 @@ public class Game {
     private MediaPlayer player;
     private KeyBoardEventWrapper kbWrapper;
 
+    private Beatmap bm;
+    private GameData data;
+
     private Pane root;
     private Canvas bgCanvas;
     private GraphicsContext bgCtx;
@@ -49,9 +52,10 @@ public class Game {
     private GraphicsContext keyCtx;
     private HUD hud;
 
-    private GameEndEventHandler gameEndEventHandler;
+    private EventHandler<GameResult> gameEndEventHandler;
 
     public void setBeatmap(Beatmap bm) {
+        this.bm = bm;
         this.player = new MediaPlayer(bm.getMusic());
         this.numLanes = bm.getNumLanes();
         keyConverter = new LaneToKeyConverter(numLanes);
@@ -69,11 +73,10 @@ public class Game {
         padding = (width - totalLaneWidth) / 2;
         drawLanes();
         drawHitBar();
-        hud.setCombo(0);
-        hud.setScore(0);
+        data.resetData();
     }
 
-    public void setOnEnd(GameEndEventHandler f) {
+    public void setOnEnd(EventHandler<GameResult> f) {
         this.gameEndEventHandler = f;
     }
 
@@ -95,11 +98,10 @@ public class Game {
         player.setOnEndOfMedia(() -> {
             timer.stop();
             if (gameEndEventHandler != null) {
-                gameEndEventHandler.invoke();
+                gameEndEventHandler.invoke(new GameResult(bm, data));
             }
         });
         root.requestFocus();
-        System.out.println("Start");
     }
 
     public Game(Pane root, int w, int h) {
@@ -110,13 +112,28 @@ public class Game {
         keyCanvas = new Canvas(w, h);
         keyCtx = keyCanvas.getGraphicsContext2D();
         hud = new HUD(new Canvas(w, h));
-        root.getChildren().addAll(bgCanvas, noteCanvas, keyCanvas, hud.canvas);
+        root.getChildren().addAll(bgCanvas, noteCanvas, keyCanvas, hud.getCanvas());
         kbWrapper = new KeyBoardEventWrapper(root);
         kbWrapper.setOnKeyDown(this::onKeyDown);
         kbWrapper.setOnKeyUp(this::onKeyUp);
-        width = (int) bgCanvas.getWidth();
-        height = (int) bgCanvas.getHeight();
+        data = new GameData();
+        hud.bind(data);
+        hud.draw(data); // initial draw
+        width = w;
+        height = h;
         this.root = root;
+    }
+
+    public void resize(int w, int h) {
+        bgCanvas.setWidth(w);
+        bgCanvas.setHeight(h);
+        noteCanvas.setWidth(w);
+        noteCanvas.setHeight(h);
+        keyCanvas.setWidth(w);
+        keyCanvas.setHeight(h);
+        hud.resize(w, h);
+        width = w;
+        height = h;
     }
 
     private void drawLanes() {
@@ -146,16 +163,16 @@ public class Game {
         for (int i = 0; i < numLanes; i++) {
             var lane = lanes.get(i);
             while (!lane.starting.isEmpty() && lane.starting.peek().getSecond() <= currentTime + range0) {
-                assert(!lane.starting.isEmpty()); // without this, idk why IDEA is complaining possible NullPointerException
+                assert (!lane.starting.isEmpty()); // without this, idk why IDEA is complaining possible NullPointerException
                 lane.currentNotes.add(lane.starting.poll().getFirst());
             }
             while (!lane.ending.isEmpty() && lane.ending.peek().getSecond() <= currentTime - range0) {
-                assert(!lane.ending.isEmpty()); // same as above
+                assert (!lane.ending.isEmpty()); // same as above
                 var note = lane.ending.poll().getFirst();
                 lane.currentNotes.remove(note);
                 if (note.getState() == NoteState.NORMAL || note.getState() == NoteState.PRESSED) {
                     note.setState(NoteState.MISSED);
-                    hud.setCombo(0);
+                    data.putResult(NoteResult.SCORE_0);
                 }
             }
             {
@@ -201,27 +218,28 @@ public class Game {
             if (num == -1) return; // not a valid key
             var lane = lanes.get(num);
             for (var note : lane.currentNotes) {
-                if (Math.abs(note.getStartTime() - currentTime) <= range0) {
-                    if (note.isShortNote()) {
-                        if (note.getState() != NoteState.CLEARED) {
-                            note.setState(NoteState.CLEARED);
-                            hud.addCombo();
-                            if (Math.abs(note.getStartTime() - currentTime) <= range300) {
-                                hud.addScoreWeighed(300);
-                            } else if (Math.abs(note.getStartTime() - currentTime) <= range200) {
-                                hud.addScoreWeighed(200);
-                            } else if (Math.abs(note.getStartTime() - currentTime) <= range100) {
-                                hud.addScoreWeighed(100);
-                            } else {
-                                note.setState(NoteState.MISSED);
-                                hud.setCombo(0);
-                            }
-                            break; // each press should only handle one note
-                        }
+                // all notes is in [currentTime-range0, currentTime+range0]
+                if (note.getState() == NoteState.CLEARED) continue;
+                if (note.isShortNote()) {
+                    note.setState(NoteState.CLEARED);
+                    if (Math.abs(note.getStartTime() - currentTime) <= range300) {
+                        data.putResult(NoteResult.SCORE_300);
+                    } else if (Math.abs(note.getStartTime() - currentTime) <= range200) {
+                        data.putResult(NoteResult.SCORE_200);
                     } else if (Math.abs(note.getStartTime() - currentTime) <= range100) {
-                        note.setState(NoteState.PRESSED);
-                        break;
+                        data.putResult(NoteResult.SCORE_100);
+                    } else {
+                        note.setState(NoteState.MISSED);
+                        data.putResult(NoteResult.SCORE_0);
                     }
+                    break; // each press should only handle one note
+                } else {
+                    if (Math.abs(note.getStartTime() - currentTime) <= range100) {
+                        note.setState(NoteState.PRESSED);
+                    } else {
+                        note.setState(NoteState.MISSED);
+                    }
+                    break;
                 }
             }
         }
@@ -235,21 +253,20 @@ public class Game {
             if (num == -1) return; // not a valid key
             var lane = lanes.get(num);
             for (var note : lane.currentNotes) {
-                if (note.isShortNote()) continue;
+                if (note.isShortNote() || note.getState() == NoteState.CLEARED) continue;
                 if (note.getState() == NoteState.PRESSED && Math.abs(note.getEndTime() - currentTime) <= range100) {
                     note.setState(NoteState.CLEARED);
-                    hud.addCombo();
                     if (Math.abs(note.getEndTime() - currentTime) <= range300) {
-                        hud.addScoreWeighed(300);
+                        data.putResult(NoteResult.SCORE_300);
                     } else if (Math.abs(note.getEndTime() - currentTime) <= range200) {
-                        hud.addScoreWeighed(200);
+                        data.putResult(NoteResult.SCORE_200);
                     } else if (Math.abs(note.getEndTime() - currentTime) <= range100) {
-                        hud.addScoreWeighed(100);
+                        data.putResult(NoteResult.SCORE_100);
                     }
                     break;
-                } else if (note.getState() != NoteState.CLEARED || note.getState() != NoteState.MISSED) {
+                } else if (note.getState() != NoteState.MISSED) {
                     note.setState(NoteState.MISSED);
-                    hud.setCombo(0);
+                    data.putResult(NoteResult.SCORE_0);
                 }
             }
         }

@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.text.*?>
+<?import javafx.scene.control.Button?>
+<VBox xmlns="http://javafx.com/javafx"
+      xmlns:fx="http://javafx.com/fxml"
+      fx:controller="net.maple3142.maniafx.views.ResultScreen"
+      prefHeight="800.0" prefWidth="600.0" alignment="CENTER" spacing="10">
+    <padding>
+        <Insets top="10" bottom="10" left="10" right="10"/>
+    </padding>
+    <HBox alignment="CENTER" spacing="10" minHeight="100">
+        <Text fx:id="title">
+            <font>
+                <Font size="40" name="Arial"/>
+            </font>
+        </Text>
+        <Text fx:id="artist">
+            <font>
+                <Font size="30" name="Arial"/>
+            </font>
+        </Text>
+    </HBox>
+    <HBox alignment="CENTER" minHeight="50" spacing="5">
+        <Text fx:id="count300"/>
+        <Text fx:id="count200"/>
+        <Text fx:id="count100"/>
+        <Text fx:id="count0"/>
+    </HBox>
+    <HBox alignment="CENTER" minHeight="50" spacing="5">
+        <Text fx:id="accuracy"/>
+        <Text fx:id="maxCombo"/>
+    </HBox>
+    <HBox alignment="CENTER">
+        <Button onAction="#back" text="Go Back"/>
+    </HBox>
+</VBox>
